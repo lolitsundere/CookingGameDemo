@@ -9,7 +9,6 @@ namespace Models
         public string Name { get; private set; }
         public int SellPrice { get; private set; }
 
-
         public override bool Equals(object obj)
         {
             var Food = obj as Food;

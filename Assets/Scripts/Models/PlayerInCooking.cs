@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 namespace Models
 {
@@ -9,6 +10,11 @@ namespace Models
         public Food LeftHandFood { get; private set; }
         public Food RightHandFood { get; private set; }
 
+        /// <summary>
+        /// 拿取食物(从素材或工具中)
+        /// </summary>
+        /// <param name="food"></param>
+        /// <returns></returns>
         public bool GetFood(Food food)
         {
             if (LeftHandFood == null)
@@ -69,6 +75,11 @@ namespace Models
             return true;
         }
 
+        /// <summary>
+        /// 与工具互动(合成/放入/拿取)
+        /// </summary>
+        /// <param name="tool"></param>
+        /// <returns></returns>
         public bool InteractWithTool(CookingTool tool)
         {
             if (LeftHandFood is CookingResult && RightHandFood is CookingResult)
@@ -76,36 +87,39 @@ namespace Models
                 return false;
             }
 
-            //拿取做好的食物
-            Food temp = tool.GetCookedFood();
-            if (!GetFood(temp))
+            if (tool.IsCooking && !tool.IsDone)
             {
                 return false;
             }
 
-            List<Food> tempList;
+            //拿取做好的食物
+            if (tool.IsDone)
+            {
+                Food temp = tool.GetCookedFood();
+                if (temp != null && !GetFood(temp))
+                {
+                    return false;
+                }
+            }
 
+            List<Food> tempList;
             //测试加入左手食物后是否可以合成
             if (LeftHandFood != null)
             {
                 tempList = new List<Food>(new Food[] { LeftHandFood });
                 tempList = tool.Cook(tempList);
-                if (temp != null)
+                if (tempList != null)
                 { 
                     switch (tempList.Count)
                     {
                         case 0:
                             LeftHandFood = null;
-                            RightHandFood = null;
                             break;
                         case 1:
                             LeftHandFood = tempList[0];
-                            RightHandFood = null;
                             break;
-                        case 2:
-                            LeftHandFood = tempList[0];
-                            RightHandFood = tempList[1];
-                            break;
+                        default:
+                            throw new NotImplementedException();
                     }
                     return true;
                 }
@@ -116,22 +130,18 @@ namespace Models
             {
                 tempList = new List<Food>(new Food[] { RightHandFood });
                 tempList = tool.Cook(tempList);
-                if (temp != null)
+                if (tempList != null)
                 {
                     switch (tempList.Count)
                     {
                         case 0:
-                            LeftHandFood = null;
                             RightHandFood = null;
                             break;
                         case 1:
-                            LeftHandFood = tempList[0];
-                            RightHandFood = null;
+                            RightHandFood = tempList[0];
                             break;
-                        case 2:
-                            LeftHandFood = tempList[0];
-                            RightHandFood = tempList[1];
-                            break;
+                        default:
+                            throw new NotImplementedException();
                     }
                     return true;
                 }
@@ -142,7 +152,7 @@ namespace Models
             {
                 tempList = new List<Food>(new Food[] { RightHandFood, LeftHandFood });
                 tempList = tool.Cook(tempList);
-                if (temp != null)
+                if (tempList != null)
                 {
                     switch (tempList.Count)
                     {
@@ -158,19 +168,59 @@ namespace Models
                             LeftHandFood = tempList[0];
                             RightHandFood = tempList[1];
                             break;
+                        default:
+                            throw new NotImplementedException();
                     }
                     return true;
                 }
             }
 
-            //拿取材料
-            temp = tool.GetFoodInside();
-            if (!GetFood(temp))
+            bool put = false;
+            //查看食物是否可以加入食材
+            if (LeftHandFood != null && tool.PutFood(LeftHandFood))
             {
-                return false;
+                put = true;
+            }
+            if (RightHandFood != null && tool.PutFood(RightHandFood))
+            {
+                put = true;
+            }
+
+
+            //拿取材料
+            if (!put)
+            {
+                Food temp = tool.GetFoodInside();
+                if (!GetFood(temp))
+                {
+                    return false;
+                }
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// 将食物交给顾客
+        /// </summary>
+        /// <param name="customer"></param>
+        /// <returns></returns>
+        public bool ServeFood(Customer customer)
+        {
+            if (RightHandFood != null && customer.DesiredFood.Equals(RightHandFood))
+            {
+                RightHandFood = null;
+                customer.GetServed();
+                return true;
+            }
+            if (LeftHandFood != null && customer.DesiredFood.Equals(LeftHandFood))
+            {
+                LeftHandFood = RightHandFood;
+                RightHandFood = null;
+                customer.GetServed();
+                return true;
+            }
+            return false;
         }
     }
 }

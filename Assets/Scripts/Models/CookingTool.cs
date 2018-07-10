@@ -8,10 +8,14 @@ namespace Models
     {
         public string Name { get; private set; }
         public List<CookingResult> FoodCanBeMade { get; private set; }
+
+        public List<Food> AcceptableFood { get; private set; }
         public List<Food> FoodInside { get; private set; }
         public bool IsCooking { get; private set; }
         public Food ServedFood { get; private set; }
         public bool IsDone { get; private set; }
+
+
         public Food GetCookedFood()
         {
             Food result;
@@ -22,6 +26,7 @@ namespace Models
                     result = ServedFood;
                     ServedFood = null;
                     IsDone = false;
+                    IsCooking = false;
                     return result;
                 }
                 else
@@ -35,14 +40,35 @@ namespace Models
             }
         }
 
+        public bool PutFood(Food food)
+        {
+            if (FoodInside.Count >= 2)
+            {
+                return false;
+            }
+
+            if (AcceptableFood.Contains(food))
+            {
+                FoodInside.Add(food);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         public Food GetFoodInside()
         {
-            Food result;
-            if (FoodInside.Count > 0)
+            if (!IsCooking)
             {
-                result = FoodInside[0];
-                FoodInside.RemoveAt(0);
-                return result;
+                Food result;
+                if (FoodInside.Count > 0)
+                {
+                    result = FoodInside[0];
+                    FoodInside.RemoveAt(0);
+                    return result;
+                }
             }
             return null;
         }
